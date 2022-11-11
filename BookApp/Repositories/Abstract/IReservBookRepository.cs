@@ -6,6 +6,6 @@ namespace BookApp.Repositories.Abstract
     {
         Guid Create(T item);
         void Delete(Guid bookId);
-        IEnumerable<ReservBook> GetAllReserv();
+        IEnumerable<T> GetAllReserv();
     }
 }
