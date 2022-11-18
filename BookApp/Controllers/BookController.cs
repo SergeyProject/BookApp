@@ -1,4 +1,5 @@
-﻿using BookApp.Models;
+﻿using BookApp.BL;
+using BookApp.Models;
 using BookApp.Models.Resmodels;
 using BookApp.Repositories.Abstract;
 using Microsoft.AspNetCore.Cors;
@@ -11,10 +12,12 @@ namespace BookApp.Controllers
     {
         private readonly IBookRepository<Book> _bookRepository;
         private readonly IReservBookRepository<ReservBook> _reservBookRepository;
+        BusinesLogic businesLogic;
         public BookController(IBookRepository<Book> bookRepository, IReservBookRepository<ReservBook> reservBookRepository)
         {
             _bookRepository = bookRepository;
             _reservBookRepository = reservBookRepository;
+            businesLogic = new BusinesLogic(_bookRepository, _reservBookRepository);
         }
 
         /// <summary>
@@ -58,7 +61,6 @@ namespace BookApp.Controllers
             _bookRepository.Delete(id);
             _reservBookRepository.Delete(id);
             return Ok("Ok");
-
         }
 
         /// <summary>
@@ -79,18 +81,7 @@ namespace BookApp.Controllers
         [Route("api/ReserveBook")]
         public IActionResult ReserveBook(Guid bookId, string comment)
         {
-            foreach (var item in _reservBookRepository.GetAllReserv())
-            {
-                if (item.BookId == bookId)
-                    return BadRequest();
-            }
-
-            ReservBook reservBook = new ReservBook()
-            {
-                BookId = bookId,
-                Comment = comment
-            };
-            return Ok(_reservBookRepository.Create(reservBook));
+            return Ok(businesLogic.ReserveBook(bookId, comment));
         }
 
         /// <summary>
@@ -109,23 +100,10 @@ namespace BookApp.Controllers
         /// Список зарезервированных книг
         /// </summary>  
         [HttpGet]
-        [Route("api/GetReservBooks")]
+        [Route("api/GetReservedBooks")]
         public JsonResult GetAllReservBook()
         {
-            List<Book> books = new List<Book>();
-            List<Reserv> reserv = new List<Reserv>();
-
-            foreach (var book in _bookRepository.GetAll())
-            {
-                foreach (ReservBook item in _reservBookRepository.GetAllReserv())
-                {
-                    if (item.BookId == book.Id)
-                    {
-                        reserv.Add(new Reserv { BookId = book.Id, Name = book.Name, Author = book.Author, Comments = item.Comment });
-                    }
-                }
-            }
-            return new JsonResult(reserv);
+            return businesLogic.GetAllReservBook();
         }
 
 
@@ -133,29 +111,10 @@ namespace BookApp.Controllers
         /// Список не зарезервированных книг
         /// </summary>  
         [HttpGet]
-        [Route("api/GetNoReservBooks")]
+        [Route("api/GetNoReservedBooks")]
         public JsonResult GetAllNoReservBook()
         {
-            bool isNoReserve = false;
-            List<Book> books = new List<Book>();
-            foreach (var book in _bookRepository.GetAll())
-            {
-                foreach (ReservBook resBook in _reservBookRepository.GetAllReserv())
-                {
-                    if (resBook.BookId == book.Id)
-                    {
-                        isNoReserve = false;
-                        break;
-                    }
-                    else
-                    {
-                        isNoReserve = true;
-                    }
-                }
-                if (isNoReserve)
-                    books.Add(book);
-            }
-            return new JsonResult(books);
+            return new JsonResult(businesLogic.GetAllNoReservBook());
         }
     }
 }
